@@ -79,8 +79,8 @@ export class SignalingGateway
       `Signaling message from ${signalingMessage.fromUserId} to ${signalingMessage.toUserId} in session ${signalingMessage.sessionId}`,
     );
 
-    // Send to specific user in the session
-    client.to(signalingMessage.sessionId).emit('signal', signalingMessage);
+    // Send to specific user in the session (exclude sender)
+    client.to(signalingMessage.toUserId).emit('signal', signalingMessage);
   }
 
   @SubscribeMessage('chat-message')

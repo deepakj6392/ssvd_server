@@ -47,7 +47,7 @@ let SignalingGateway = class SignalingGateway {
     }
     handleSignal(signalingMessage, client) {
         this.logger.log(`Signaling message from ${signalingMessage.fromUserId} to ${signalingMessage.toUserId} in session ${signalingMessage.sessionId}`);
-        client.to(signalingMessage.sessionId).emit('signal', signalingMessage);
+        client.to(signalingMessage.toUserId).emit('signal', signalingMessage);
     }
     handleChatMessage(data, client) {
         const message = {
