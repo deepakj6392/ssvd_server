@@ -5,6 +5,7 @@ export declare class Session {
     get id(): string;
     name: string;
     hostId: string;
+    hostName?: string;
     participants: string[];
     createdAt: Date;
     isActive: boolean;

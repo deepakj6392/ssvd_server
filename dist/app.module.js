@@ -35,6 +35,7 @@ exports.AppModule = AppModule = __decorate([
                 subscriptions: {
                     'graphql-ws': true,
                 },
+                context: ({ req }) => ({ req }),
             }),
             mongoose_1.MongooseModule.forRoot(process.env.DATABASE_URL || 'mongodb://localhost:27017/connect'),
             auth_module_1.AuthModule,

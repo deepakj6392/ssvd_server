@@ -1,17 +1,21 @@
-import { Resolver, Query, Mutation, Args, Subscription } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Subscription, ResolveField, Parent } from '@nestjs/graphql';
 import { PubSubEngine } from 'graphql-subscriptions';
 import { Inject } from '@nestjs/common';
+import { Model } from 'mongoose';
 import { SessionService } from './session.service';
 import { Session } from './session.model';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { User, UserDocument } from '../user/user.model';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Resolver(() => Session)
 export class SessionResolver {
   constructor(
     private readonly sessionService: SessionService,
     @Inject('PUB_SUB') private pubSub: PubSubEngine,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
   @Query(() => [Session])
@@ -25,21 +29,22 @@ export class SessionResolver {
   }
 
   @Mutation(() => Session)
-  async createSession(@Args('name') name: string) {
-    const session = await this.sessionService.createSession(
-      name,
-      'test-user-id',
-    );
+  @UseGuards(JwtAuthGuard)
+  async createSession(@Args('name') name: string, @CurrentUser() user: any) {
+    const userId = (user as any).userId || (user as any).sub;
+    const session = await this.sessionService.createSession(name, userId);
     this.pubSub.publish('sessionCreated', { sessionCreated: session });
     return session;
   }
 
   @Mutation(() => Session, { nullable: true })
-  async joinSession(@Args('sessionId') sessionId: string) {
-    const session = await this.sessionService.joinSession(
-      sessionId,
-      'test-user-id',
-    );
+  @UseGuards(JwtAuthGuard)
+  async joinSession(
+    @Args('sessionId') sessionId: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = (user as any).userId || (user as any).sub;
+    const session = await this.sessionService.joinSession(sessionId, userId);
     if (session) {
       this.pubSub.publish('sessionUpdated', { sessionUpdated: session });
     }
@@ -47,11 +52,13 @@ export class SessionResolver {
   }
 
   @Mutation(() => Session, { nullable: true })
-  async leaveSession(@Args('sessionId') sessionId: string) {
-    const session = await this.sessionService.leaveSession(
-      sessionId,
-      'test-user-id',
-    );
+  @UseGuards(JwtAuthGuard)
+  async leaveSession(
+    @Args('sessionId') sessionId: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = (user as any).userId || (user as any).sub;
+    const session = await this.sessionService.leaveSession(sessionId, userId);
     if (session) {
       this.pubSub.publish('sessionUpdated', { sessionUpdated: session });
     }
@@ -59,11 +66,13 @@ export class SessionResolver {
   }
 
   @Mutation(() => Boolean)
-  async endSession(@Args('sessionId') sessionId: string) {
-    const success = await this.sessionService.endSession(
-      sessionId,
-      'test-user-id',
-    );
+  @UseGuards(JwtAuthGuard)
+  async endSession(
+    @Args('sessionId') sessionId: string,
+    @CurrentUser() user: any,
+  ) {
+    const userId = (user as any).userId || (user as any).sub;
+    const success = await this.sessionService.endSession(sessionId, userId);
     if (success) {
       this.pubSub.publish('sessionEnded', { sessionEnded: sessionId });
     }
@@ -78,6 +87,12 @@ export class SessionResolver {
   @Subscription(() => Session, { nullable: true })
   sessionUpdated() {
     return (this.pubSub as any).asyncIterator('sessionUpdated');
+  }
+
+  @ResolveField(() => String, { nullable: true })
+  async hostName(@Parent() session: Session) {
+    const user = await this.userModel.findById(session.hostId).exec();
+    return user?.name || 'Unknown User';
   }
 
   @Subscription(() => String)

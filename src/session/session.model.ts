@@ -23,6 +23,9 @@ export class Session {
   @Prop({ required: true })
   hostId: string;
 
+  @Field(() => String, { nullable: true })
+  hostName?: string;
+
   @Field(() => [String])
   @Prop({ type: [String], default: [] })
   participants: string[];

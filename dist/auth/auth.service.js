@@ -63,7 +63,7 @@ let AuthService = class AuthService {
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new this.userModel({ email, password: hashedPassword, name });
         await user.save();
-        const payload = { email: user.email, sub: user._id };
+        const payload = { email: user.email, sub: user._id, name: user.name };
         return {
             access_token: this.jwtService.sign(payload),
         };
@@ -77,7 +77,7 @@ let AuthService = class AuthService {
         if (!isPasswordValid) {
             throw new common_1.UnauthorizedException('Invalid credentials');
         }
-        const payload = { email: user.email, sub: user._id };
+        const payload = { email: user.email, sub: user._id, name: user.name };
         return {
             access_token: this.jwtService.sign(payload),
         };

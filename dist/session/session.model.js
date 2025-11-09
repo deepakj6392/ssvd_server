@@ -19,6 +19,7 @@ let Session = class Session {
     }
     name;
     hostId;
+    hostName;
     participants;
     createdAt;
     isActive;
@@ -43,6 +44,10 @@ __decorate([
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], Session.prototype, "hostId", void 0);
+__decorate([
+    (0, graphql_1.Field)(() => String, { nullable: true }),
+    __metadata("design:type", String)
+], Session.prototype, "hostName", void 0);
 __decorate([
     (0, graphql_1.Field)(() => [String]),
     (0, mongoose_1.Prop)({ type: [String], default: [] }),

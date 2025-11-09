@@ -16,14 +16,22 @@ exports.SessionResolver = void 0;
 const graphql_1 = require("@nestjs/graphql");
 const graphql_subscriptions_1 = require("graphql-subscriptions");
 const common_1 = require("@nestjs/common");
+const mongoose_1 = require("mongoose");
 const session_service_1 = require("./session.service");
 const session_model_1 = require("./session.model");
+const common_2 = require("@nestjs/common");
+const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const current_user_decorator_1 = require("../auth/current-user.decorator");
+const user_model_1 = require("../user/user.model");
+const mongoose_2 = require("@nestjs/mongoose");
 let SessionResolver = class SessionResolver {
     sessionService;
     pubSub;
-    constructor(sessionService, pubSub) {
+    userModel;
+    constructor(sessionService, pubSub, userModel) {
         this.sessionService = sessionService;
         this.pubSub = pubSub;
+        this.userModel = userModel;
     }
     async sessions() {
         return this.sessionService.getActiveSessions();
@@ -31,27 +39,31 @@ let SessionResolver = class SessionResolver {
     async session(id) {
         return this.sessionService.getSessionById(id);
     }
-    async createSession(name) {
-        const session = await this.sessionService.createSession(name, 'test-user-id');
+    async createSession(name, user) {
+        const userId = user.userId || user.sub;
+        const session = await this.sessionService.createSession(name, userId);
         this.pubSub.publish('sessionCreated', { sessionCreated: session });
         return session;
     }
-    async joinSession(sessionId) {
-        const session = await this.sessionService.joinSession(sessionId, 'test-user-id');
+    async joinSession(sessionId, user) {
+        const userId = user.userId || user.sub;
+        const session = await this.sessionService.joinSession(sessionId, userId);
         if (session) {
             this.pubSub.publish('sessionUpdated', { sessionUpdated: session });
         }
         return session;
     }
-    async leaveSession(sessionId) {
-        const session = await this.sessionService.leaveSession(sessionId, 'test-user-id');
+    async leaveSession(sessionId, user) {
+        const userId = user.userId || user.sub;
+        const session = await this.sessionService.leaveSession(sessionId, userId);
         if (session) {
             this.pubSub.publish('sessionUpdated', { sessionUpdated: session });
         }
         return session;
     }
-    async endSession(sessionId) {
-        const success = await this.sessionService.endSession(sessionId, 'test-user-id');
+    async endSession(sessionId, user) {
+        const userId = user.userId || user.sub;
+        const success = await this.sessionService.endSession(sessionId, userId);
         if (success) {
             this.pubSub.publish('sessionEnded', { sessionEnded: sessionId });
         }
@@ -62,6 +74,10 @@ let SessionResolver = class SessionResolver {
     }
     sessionUpdated() {
         return this.pubSub.asyncIterator('sessionUpdated');
+    }
+    async hostName(session) {
+        const user = await this.userModel.findById(session.hostId).exec();
+        return user?.name || 'Unknown User';
     }
     sessionEnded() {
         return this.pubSub.asyncIterator('sessionEnded');
@@ -83,30 +99,38 @@ __decorate([
 ], SessionResolver.prototype, "session", null);
 __decorate([
     (0, graphql_1.Mutation)(() => session_model_1.Session),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, graphql_1.Args)('name')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], SessionResolver.prototype, "createSession", null);
 __decorate([
     (0, graphql_1.Mutation)(() => session_model_1.Session, { nullable: true }),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, graphql_1.Args)('sessionId')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], SessionResolver.prototype, "joinSession", null);
 __decorate([
     (0, graphql_1.Mutation)(() => session_model_1.Session, { nullable: true }),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, graphql_1.Args)('sessionId')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], SessionResolver.prototype, "leaveSession", null);
 __decorate([
     (0, graphql_1.Mutation)(() => Boolean),
+    (0, common_2.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, graphql_1.Args)('sessionId')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], SessionResolver.prototype, "endSession", null);
 __decorate([
@@ -122,6 +146,13 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SessionResolver.prototype, "sessionUpdated", null);
 __decorate([
+    (0, graphql_1.ResolveField)(() => String, { nullable: true }),
+    __param(0, (0, graphql_1.Parent)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [session_model_1.Session]),
+    __metadata("design:returntype", Promise)
+], SessionResolver.prototype, "hostName", null);
+__decorate([
     (0, graphql_1.Subscription)(() => String),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -130,7 +161,9 @@ __decorate([
 exports.SessionResolver = SessionResolver = __decorate([
     (0, graphql_1.Resolver)(() => session_model_1.Session),
     __param(1, (0, common_1.Inject)('PUB_SUB')),
+    __param(2, (0, mongoose_2.InjectModel)(user_model_1.User.name)),
     __metadata("design:paramtypes", [session_service_1.SessionService,
-        graphql_subscriptions_1.PubSubEngine])
+        graphql_subscriptions_1.PubSubEngine,
+        mongoose_1.Model])
 ], SessionResolver);
 //# sourceMappingURL=session.resolver.js.map

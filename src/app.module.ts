@@ -23,6 +23,7 @@ import { PubSub } from 'graphql-subscriptions';
       subscriptions: {
         'graphql-ws': true,
       },
+      context: ({ req }) => ({ req }),
     }),
     MongooseModule.forRoot(
       process.env.DATABASE_URL || 'mongodb://localhost:27017/connect',
