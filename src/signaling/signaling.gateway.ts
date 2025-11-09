@@ -10,6 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
+import { SessionService } from '../session/session.service';
 import type { SignalingMessage } from '.';
 
 @WebSocketGateway({
@@ -24,6 +25,8 @@ export class SignalingGateway
   server: Server;
 
   private logger: Logger = new Logger('SignalingGateway');
+
+  constructor(private sessionService: SessionService) {}
 
   afterInit(server: Server) {
     this.logger.log('Signaling Gateway initialized');
@@ -84,7 +87,7 @@ export class SignalingGateway
   }
 
   @SubscribeMessage('chat-message')
-  handleChatMessage(
+  async handleChatMessage(
     @MessageBody() data: { sessionId: string; userId: string; content: string },
     @ConnectedSocket() client: Socket,
   ) {
@@ -99,6 +102,9 @@ export class SignalingGateway
     this.logger.log(
       `Chat message in session ${data.sessionId} from ${data.userId}`,
     );
+
+    // Save message to database
+    await this.sessionService.addMessage(data.sessionId, message);
 
     // Broadcast to all users in the session
     this.server.to(data.sessionId).emit('chat-message', message);

@@ -64,4 +64,18 @@ export class SessionService {
     await session.save();
     return true;
   }
+
+  async addMessage(sessionId: string, message: { id: string; userId: string; content: string; timestamp: Date }): Promise<Session | null> {
+    const session = await this.sessionModel.findById(sessionId).exec();
+    if (!session) return null;
+
+    const newMessage = {
+      ...message,
+      sessionId,
+    };
+
+    session.messages.push(newMessage);
+    await session.save();
+    return session;
+  }
 }

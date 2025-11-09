@@ -2,6 +2,19 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type Message {
+  id: String!
+  sessionId: String!
+  userId: String!
+  content: String!
+  timestamp: DateTime!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
 type Session {
   _id: ID!
   id: ID!
@@ -9,14 +22,10 @@ type Session {
   hostId: String!
   hostName: String
   participants: [String!]!
+  messages: [Message!]!
   createdAt: DateTime!
   isActive: Boolean!
 }
-
-"""
-A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
-"""
-scalar DateTime
 
 type Query {
   hello: String!

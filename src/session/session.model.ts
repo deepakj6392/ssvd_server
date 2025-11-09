@@ -2,6 +2,24 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 
+@ObjectType()
+export class Message {
+  @Field()
+  id: string;
+
+  @Field()
+  sessionId: string;
+
+  @Field()
+  userId: string;
+
+  @Field()
+  content: string;
+
+  @Field()
+  timestamp: Date;
+}
+
 export type SessionDocument = Session & Document;
 
 @ObjectType()
@@ -29,6 +47,10 @@ export class Session {
   @Field(() => [String])
   @Prop({ type: [String], default: [] })
   participants: string[];
+
+  @Field(() => [Message])
+  @Prop({ type: [Object], default: [] })
+  messages: Message[];
 
   @Field()
   @Prop({ default: Date.now })
