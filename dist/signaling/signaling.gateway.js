@@ -31,11 +31,18 @@ let SignalingGateway = class SignalingGateway {
     handleJoinSession(data, client) {
         client.join(data.sessionId);
         this.logger.log(`User ${data.userId} joined session ${data.sessionId}`);
+        client.to(data.sessionId).emit('user-joined', {
+            userId: data.userId,
+            sessionId: data.sessionId,
+        });
         return { event: 'joined-session', data: { sessionId: data.sessionId } };
     }
     handleLeaveSession(data, client) {
         client.leave(data.sessionId);
         this.logger.log(`User ${data.userId} left session ${data.sessionId}`);
+        client.to(data.sessionId).emit('user-left', {
+            userId: data.userId,
+        });
         return { event: 'left-session', data: { sessionId: data.sessionId } };
     }
     handleSignal(signalingMessage, client) {

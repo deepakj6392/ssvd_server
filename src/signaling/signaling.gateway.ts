@@ -44,6 +44,13 @@ export class SignalingGateway
   ) {
     client.join(data.sessionId);
     this.logger.log(`User ${data.userId} joined session ${data.sessionId}`);
+
+    // Notify other users in the session that a new user joined
+    client.to(data.sessionId).emit('user-joined', {
+      userId: data.userId,
+      sessionId: data.sessionId,
+    });
+
     return { event: 'joined-session', data: { sessionId: data.sessionId } };
   }
 
@@ -54,6 +61,12 @@ export class SignalingGateway
   ) {
     client.leave(data.sessionId);
     this.logger.log(`User ${data.userId} left session ${data.sessionId}`);
+
+    // Notify other users in the session that a user left
+    client.to(data.sessionId).emit('user-left', {
+      userId: data.userId,
+    });
+
     return { event: 'left-session', data: { sessionId: data.sessionId } };
   }
 
